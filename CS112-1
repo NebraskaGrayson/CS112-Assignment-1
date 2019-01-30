@@ -1,0 +1,205 @@
+### Multilateral Development Institution Data
+foo <- read.csv("https://tinyurl.com/yb4phxx8") # read in the data
+
+# column names
+names(foo)
+
+# dimensions of the data set
+dim(foo)
+
+# quick look at the data structure
+head(foo)
+
+# one thing to be very careful with (in this data set) is the use of dates. 8 columns involve dates.
+
+# take note of the columns representing calendar dates
+date.columns <- c(11, 12, 14, 15, 16, 17, 18, 25)
+
+# these columns need some tweaking--I want to address missing values, calling the blank (empty) 
+# elements "NA" instead of leaving them blank, and I wish to tell R these are "Date" objects.
+
+for(i in date.columns){  # this "for loop" only loops through the "date.columns" -- no other columns.
+
+  
+  # identify which values are missing in the "i"th column of the foo data set
+  which_values_are_missing <- which(as.character(foo[, i]) == "")
+  
+  # those values that are missing (blank) in the "i"th column are replaced by <NA>
+  # because R knows how to handle "NA" -- NA means something special in R--blanks are handled 
+  # more unpredictably (which is bad).
+  foo[which_values_are_missing, i] <- NA
+  
+  # last step--replace each of these columns (which is structured as a column of "factor" values)
+  # as a column of dates--i.e., convert them to an object of "class" = Date. They are dates, after all.
+  # And if you convert them to the Date class, R will know they are dates and you can manipulate 
+  # dates in a simple, straightforward way. Otherwise, you won't be able to easily manipulate them
+  # arithmetically.  E.g., for simple Date operations, see lines 48-58 below...
+  # **By the way, if you don't understand what a "factor" is in R, you should Google it.** 
+  foo[, i] <- as.Date(as.character(foo[, i]), format="%Y-%m-%d")
+  
+}
+
+# Now R knows that these columns are comprised of dates
+# for example...  Replicate this yourself...
+
+# foo[3,12]
+# [1] "1968-03-13"
+
+# foo[4,12]
+# [1] "1968-07-03"
+
+# foo[3,12] - foo[4,12]
+# Time difference of -112 days
+
+# Also, one additional helpful hint... How to eliminate rows with NAs...
+# The "is.na" function--for more info, Google it or type ?is.na at the R command prompt in the console.
+which.have.NAs <- which(is.na(foo$Rating == TRUE)) # for which rows is the claim "is.na" a TRUE claim?
+
+# Then, if you wanted to, e.g., remove all those rows, retaining only the rows with ratings...
+new_foo <- foo[-which.have.NAs, ]
+# Notice I called this tweaked data set "new_foo" instead of rewriting over the original data set...
+# It's a bit safer to do this, in case I decide I want to quickly revert back to the original dataset.
+
+
+#1. Filter out dates before 2008-01-01 (Circulation Date)
+new_foo[new_foo$ApprovalDate > "2008-01-01",]
+
+
+#2.
+new_foo <- new_foo[new_foo$ApprovalDate > "2008-01-01",]
+
+#3. 
+difference <- new_foo$RevisedCompletionDate - new_foo$ApprovalDate
+
+365*2 #number of days in 24 months
+
+length(difference[difference <= 730])
+
+
+mean(difference)
+median(difference)
+IQR(difference)
+summary(new_foo)
+summary(new_foo$ApprovalDate)
+summary(difference)
+
+#######################################################################################
+
+#1a
+
+foo[foo$OriginalCompletionDate >= "2008-01-01",] #remove dates before 2008-01-01
+
+considered_OCD <- foo$OriginalCompletionDate >= "2008-01-01"
+
+true <- which(considered_OCD == TRUE)
+
+new_foo <- foo[true,]
+
+which.have.NAs1 <- which(is.na(new_foo$OriginalCompletionDate == TRUE)) #column 17
+
+which.have.NAs2 <- which(is.na(new_foo$RevisedCompletionDate == TRUE)) #column 18
+
+#find the mean of the difference between Original Completion Date and Revised Completion Date
+
+difference <- new_foo$RevisedCompletionDate - new_foo$OriginalCompletionDate
+
+365*2 #number of days in 24 months
+
+mean(difference) #mean of ~462 day
+
+median(difference) #365 days
+
+quantile(difference) #1st Q: 120, 2nd Q: 365, 3rd Q: 671
+
+plot(new_foo$OriginalCompletionDate, difference)
+
+#ANSWER TO 1A:
+  #The claim that "project duration at approval [for projects >=2008-01-01] is generally about 2 years (24 months)" is false.
+  #By looking at the difference between the OriginalCompletionDate and the RevisedCompletionDate (~462 days) which is a little over 27months, 
+  #we can prove this. Additionally, the trend of duration shows a decreasing duration over the course of time. The median duration is 
+  #less than the mean duration indicating that there are fewer projects with duration above the mean yet these projects tend to have 
+  #a duration farther from the mean than the projects with a duration below the mean indicating a right-skewed duration. 
+
+
+#1b
+
+original_duration <- new_foo$OriginalCompletionDate - new_foo$ApprovalDate
+
+actual_duration <- new_foo$RevisedCompletionDate - new_foo$ApprovalDate
+
+mean(original_duration) # mean ~ 697 days
+median(origial_duration) #median 641 days
+quantile(origial_duration) #1st Q: 416, 2nd Q: 641, 3rd Q: 846
+
+mean(actual_duration) #mean ~1160 days
+median(actual_duration) #median 1082 days
+quantile(actual_duration) #1st Q: 763, 2nd Q: 1082, 3rd Q: 1447
+
+#ANSWER TO 1B:
+  #The original plan for the projects duration was significantly underestimated with about a difference of one year.
+  #Additionally, the actual duration in the 3rd quartile was significantly longer than with the origianl duration, showing a greater ranger.
+  #This indicates some danger with planning. 
+
+#2
+
+rating_zero <- new_foo[new_foo$Rating == '0',]
+
+which.have.zero <- which(new_foo$Rating == TRUE) #1611
+160
+
+rating_one <- new_foo[new_foo$Rating == '1',] #1743
+which.have.one <- which(new_foo$Rating == TRUE)
+
+rating_two <- new_foo[new_foo$Rating == '2',] #2520
+which.have.two <- which(new_foo$Rating == TRUE)
+
+rating_three <- new_foo[new_foo$Rating == '3',] #1771
+which.have.three <- which(new_foo$Rating == TRUE)
+
+1611 + 1743 + 2520 + 1771 #7645
+
+1611/7646 #21.1%
+1743/7646 #22.8%
+2520/7645 #32.9%
+1771/7645 #23.2%
+
+Ratings_By_Percentage <- matrix(c(0,21.1,1,22.8,2,32,9,23.2),ncol=1,byrow=TRUE)
+  colnames<- "Percentage" 
+  rownames("Rating") <- c("0","1","2","3")
+  Ratings_By_Percentage <- as.table(Ratings_By_Percentage)
+  Ratings_By_Percentage
+
+as.table(Ratings_By_Percentage)
+
+#3
+
+no_PPTA_Projects <- which((new_foo$Type == "PPTA") == FALSE)
+
+foo_no_PPTA_Projects <- new_foo[no_PPTA_Projects,]
+
+foo_no_PPTA_Projects
+
+new_rating_zero <- foo_no_PPTA_Projects[foo_no_PPTA_Projects$Rating == '0',]
+which.have.zero <- which(foo_no_PPTA_Projects$Rating == TRUE) #
+
+new_rating_one <- foo_no_PPTA_Projects[foo_no_PPTA_Projects$Rating == '1',] #1743
+which.have.one <- which(foo_no_PPTA_Projects$Rating == TRUE)
+
+new_rating_two <- foo_no_PPTA_Projects[foo_no_PPTA_Projects$Rating == '2',] #2520
+which.have.two <- which(foo_no_PPTA_Projects$Rating == TRUE)
+
+new_rating_three <- foo_no_PPTA_Projects[foo_no_PPTA_Projects$Rating == '3',] #1771
+which.have.three <- which(foo_no_PPTA_Projects$Rating == TRUE)
+
+
+#4 
+
+revised_amount <- new_foo$RevisedAmount
+quantile(revised_amount)
+
+
+
+
+
+
+
